@@ -3,6 +3,7 @@
     "description": "Generating a helper file for IDEs to support Laravel's macros.",
     "keywords": ["laravel", "autocomplete", "ide", "macros", "helper", "phpstorm", "netbeans", "sublime", "codeintel", "phpdoc"],
     "license": "MIT",
+    "type": "library",
     "authors": [
         {
             "name": "Kristóf Morva",
