@@ -8,10 +8,8 @@ class MacrosCommand extends Command
 {
     /** @var string The name and signature of the console command */
     protected $signature = 'ide-helper:macros {--filename=}';
-
     /** @var string The console command description */
     protected $description = 'Generate an IDE helper file for Laravel macros';
-
     /** @var array Laravel classes with Macroable support */
     protected $classes = [
         '\Illuminate\Database\Schema\Blueprint',
@@ -46,10 +44,8 @@ class MacrosCommand extends Command
         '\Illuminate\Auth\SessionGuard',
         '\Illuminate\Http\UploadedFile',
     ];
-
     /** @var resource */
     protected $file;
-
     /** @var int */
     protected $indent = 0;
 
@@ -62,18 +58,18 @@ class MacrosCommand extends Command
 
         $fileName = $this->option('filename') ?: config('ide-macros.filename');
         $this->file = fopen(base_path($fileName), 'w');
-        $this->writeLine("<?php");
+        $this->writeLine('<?php');
 
         foreach ($classes as $class) {
-            if (!class_exists($class)) {
+            if (! class_exists($class)) {
                 continue;
             }
 
             $reflection = new \ReflectionClass($class);
             $propertyName = 'macros';
-            if (!$reflection->hasProperty($propertyName)) {
+            if (! $reflection->hasProperty($propertyName)) {
                 $propertyName = 'globalMacros';
-                if (!$reflection->hasProperty($propertyName)) {
+                if (! $reflection->hasProperty($propertyName)) {
                     continue;
                 }
             }
@@ -82,7 +78,7 @@ class MacrosCommand extends Command
             $property->setAccessible(true);
             $macros = $property->getValue();
 
-            if (!$macros) {
+            if (! $macros) {
                 continue;
             }
 
@@ -90,24 +86,35 @@ class MacrosCommand extends Command
                 $this->generateClass($reflection->getShortName(), function () use ($macros) {
                     foreach ($macros as $name => $macro) {
                         if (is_array($macro)) {
-                            list($class, $method) = $macro;
+                            [$class, $method] = $macro;
                             $function = new \ReflectionMethod(is_object($class) ? get_class($class) : $class, $method);
-                        } else if ($macro instanceof \Closure) {
+                        } elseif ($macro instanceof \Closure) {
                             $function = new \ReflectionFunction($macro);
                         } else {
-                            $function = new \ReflectionMethod(is_object($macro) ? get_class($macro) : $class, '__invoke');
+                            $function =
+                                new \ReflectionMethod(is_object($macro) ? get_class($macro) : $class, '__invoke');
                         }
 
                         if ($comment = $function->getDocComment()) {
                             $this->writeLine($comment, $this->indent);
 
                             if (strpos($comment, '@instantiated') !== false) {
-                                $this->generateFunction($name, $function->getParameters(), "public", $function->getReturnType());
+                                $this->generateFunction(
+                                    $name,
+                                    $function->getParameters(),
+                                    'public',
+                                    $function->getReturnType()
+                                );
                                 continue;
                             }
                         }
 
-                        $this->generateFunction($name, $function->getParameters(), "public static", $function->getReturnType());
+                        $this->generateFunction(
+                            $name,
+                            $function->getParameters(),
+                            'public static',
+                            $function->getReturnType()
+                        );
                     }
                 });
             });
@@ -119,12 +126,12 @@ class MacrosCommand extends Command
     }
 
     /**
-     * @param string $name
-     * @param null|Callable $callback
+     * @param  string  $name
+     * @param  null|Callable  $callback
      */
     protected function generateNamespace($name, $callback = null)
     {
-        $this->writeLine("namespace " . $name . " {", $this->indent);
+        $this->writeLine('namespace '.$name.' {', $this->indent);
 
         if ($callback) {
             $this->indent++;
@@ -132,16 +139,16 @@ class MacrosCommand extends Command
             $this->indent--;
         }
 
-        $this->writeLine("}", $this->indent);
+        $this->writeLine('}', $this->indent);
     }
 
     /**
-     * @param string $name
-     * @param null|Callable $callback
+     * @param  string  $name
+     * @param  null|Callable  $callback
      */
-    protected function generateClass($name, $callback = null)
+    protected function generateClass(string $name, $callback = null)
     {
-        $this->writeLine("class " . $name . " {", $this->indent);
+        $this->writeLine('class '.$name.' {', $this->indent);
 
         if ($callback) {
             $this->indent++;
@@ -149,28 +156,34 @@ class MacrosCommand extends Command
             $this->indent--;
         }
 
-        $this->writeLine("}", $this->indent);
+        $this->writeLine('}', $this->indent);
     }
 
     /**
-     * @param string $name
-     * @param \ReflectionParameter[] $parameters
-     * @param string $type
-     * @param null|string $returnType
-     * @param null|Callable $callback
+     * @param  string  $name
+     * @param  \ReflectionParameter  $parameters
+     * @param  string  $type
+     * @param  null|string  $returnType
+     * @param  null|Callable  $callback
+     *
      * @throws \ReflectionException
      */
-    protected function generateFunction($name, $parameters, $type = '', $returnType = null, $callback = null)
-    {
-        $this->write(($type ? "$type " : '') . "function $name(", $this->indent);
+    protected function generateFunction(
+        string $name,
+        ReflectionParameter $parameters,
+        string $type = '',
+        $returnType = null,
+        $callback = null
+    ) {
+        $this->write(($type ? "$type " : '')."function $name(", $this->indent);
 
         $index = 0;
         /* @var $parameters \ReflectionParameter[] */
         foreach ($parameters as $parameter) {
             if ($index) {
-                $this->write(", ");
+                $this->write(', ');
             }
-            
+
             if ($parameter->isVariadic()) {
                 $this->write('...');
             }
@@ -179,35 +192,35 @@ class MacrosCommand extends Command
                 $this->write($parameter->getType()->getName().' ');
             }
 
-            $this->write("$" . $parameter->getName());
-            if ($parameter->isOptional() && !$parameter->isVariadic()) {
-                $this->write(" = " . var_export($parameter->getDefaultValue(), true));
+            $this->write('$'.$parameter->getName());
+            if ($parameter->isOptional() && ! $parameter->isVariadic()) {
+                $this->write(' = '.var_export($parameter->getDefaultValue(), true));
             }
 
             $index++;
         }
 
-        $this->write(")");
+        $this->write(')');
         if ($returnType) {
             $this->write(": $returnType");
         }
-        $this->writeLine(" {");
+        $this->writeLine(' {');
 
         if ($callback) {
             $callback();
         }
 
         $this->writeLine();
-        $this->writeLine("}", $this->indent);
+        $this->writeLine('}', $this->indent);
     }
 
-    protected function write($string, $indent = 0)
+    protected function write(string $string, int $indent = 0): void
     {
-        fwrite($this->file, str_repeat('    ', $indent) . $string);
+        fwrite($this->file, str_repeat('    ', $indent).$string);
     }
 
-    protected function writeLine($line = '', $indent = 0)
+    protected function writeLine(string $line = '', int $indent = 0)
     {
-        $this->write($line . PHP_EOL, $indent);
+        $this->write($line.PHP_EOL, $indent);
     }
 }
