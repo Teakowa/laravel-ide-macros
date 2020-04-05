@@ -176,7 +176,7 @@ class MacrosCommand extends Command
             }
 
             if ($parameter->hasType()) {
-                $this->write($parameter->getType() . " ");
+                $this->write($parameter->getType()->getName().' ');
             }
 
             $this->write("$" . $parameter->getName());
